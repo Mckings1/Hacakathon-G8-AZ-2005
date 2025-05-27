@@ -1,40 +1,71 @@
+// App.jsx
 import React, { useState } from "react";
 
-function App() {
+export default function App() {
   const [userId, setUserId] = useState("");
-  const [result, setResult] = useState("");
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
 
-  const handleVerify = async () => {
-    const response = await fetch(
-      `http://localhost:5000/api/verify?userId=${userId}`
-    );
-    const data = await response.json();
-    setResult(JSON.stringify(data, null, 2));
+  const startVerification = async () => {
+    if (!userId.trim()) return;
+    setLoading(true);
+    setError(null);
+    setData(null);
+
+    try {
+      const response = await fetch(
+        `/api/verify?userId=${encodeURIComponent(userId)}`
+      );
+      if (!response.ok) throw new Error(`API error: ${response.status}`);
+      const json = await response.json();
+      setData(json);
+    } catch (err) {
+      setError(err.message || "Unknown error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
-    <div className="min-h-screen p-6 bg-gray-100">
-      <div className="max-w-xl mx-auto bg-white p-6 rounded shadow">
-        <h1 className="text-2xl font-bold mb-4">Identity Verification Agent</h1>
+    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-6">
+      <h1 className="text-3xl font-bold mb-6">
+        Self-Adaptive Identity Verification AI Agent
+      </h1>
+
+      <div className="w-full max-w-md space-y-4">
         <input
           type="text"
           placeholder="Enter User ID"
           value={userId}
           onChange={(e) => setUserId(e.target.value)}
-          className="w-full p-2 border rounded mb-4"
+          className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
         />
+
         <button
-          onClick={handleVerify}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          onClick={startVerification}
+          disabled={loading || !userId.trim()}
+          className={`w-full py-2 rounded-md text-white font-semibold ${
+            loading || !userId.trim()
+              ? "bg-indigo-300 cursor-not-allowed"
+              : "bg-indigo-600 hover:bg-indigo-700"
+          }`}
         >
-          Start Verification
+          {loading ? "Verifying..." : "Start Verification"}
         </button>
-        <pre className="mt-6 bg-gray-200 p-4 rounded overflow-x-auto text-sm">
-          {result}
-        </pre>
+
+        {error && (
+          <div className="text-red-600 font-medium bg-red-100 p-3 rounded-md">
+            Error: {error}
+          </div>
+        )}
+
+        {data && (
+          <pre className="bg-white p-4 rounded-md border overflow-x-auto max-h-64">
+            {JSON.stringify(data, null, 2)}
+          </pre>
+        )}
       </div>
     </div>
   );
 }
-
-export default App;
