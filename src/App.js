@@ -1,71 +1,56 @@
-// App.jsx
 import React, { useState } from "react";
+import "./App.css";
+import Verification from "./components/Verification";
 
-export default function App() {
-  const [userId, setUserId] = useState("");
-  const [data, setData] = useState(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+function App() {
+  const [prompt, setPrompt] = useState("");
+  const [userContext, setUserContext] = useState("");
+  const [submitted, setSubmitted] = useState(false);
+  const [riskLevel, setRiskLevel] = useState(null);
 
-  const startVerification = async () => {
-    if (!userId.trim()) return;
-    setLoading(true);
-    setError(null);
-    setData(null);
-
+  const handleSubmit = () => {
     try {
-      const response = await fetch(
-        `/api/verify?userId=${encodeURIComponent(userId)}`
-      );
-      if (!response.ok) throw new Error(`API error: ${response.status}`);
-      const json = await response.json();
-      setData(json);
-    } catch (err) {
-      setError(err.message || "Unknown error");
-    } finally {
-      setLoading(false);
+      const context = JSON.parse(userContext);
+      const score = context?.userContext?.ipReputationScore || 0;
+
+      if (score > 80) setRiskLevel("Low");
+      else if (score > 30) setRiskLevel("Medium");
+      else setRiskLevel("High");
+
+      setSubmitted(true);
+    } catch {
+      alert("Invalid JSON in user context");
     }
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center p-6">
-      <h1 className="text-3xl font-bold mb-6">
-        Self-Adaptive Identity Verification AI Agent
-      </h1>
+    <div className="container">
+      {!submitted ? (
+        <>
+          <h1>Adaptive KYC</h1>
 
-      <div className="w-full max-w-md space-y-4">
-        <input
-          type="text"
-          placeholder="Enter User ID"
-          value={userId}
-          onChange={(e) => setUserId(e.target.value)}
-          className="w-full px-4 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        />
+          <label>Prompt</label>
+          <input
+            type="text"
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="Enter prompt"
+          />
 
-        <button
-          onClick={startVerification}
-          disabled={loading || !userId.trim()}
-          className={`w-full py-2 rounded-md text-white font-semibold ${
-            loading || !userId.trim()
-              ? "bg-indigo-300 cursor-not-allowed"
-              : "bg-indigo-600 hover:bg-indigo-700"
-          }`}
-        >
-          {loading ? "Verifying..." : "Start Verification"}
-        </button>
+          <label>User Context (JSON)</label>
+          <textarea
+            value={userContext}
+            onChange={(e) => setUserContext(e.target.value)}
+            placeholder="Paste user context JSON here"
+          />
 
-        {error && (
-          <div className="text-red-600 font-medium bg-red-100 p-3 rounded-md">
-            Error: {error}
-          </div>
-        )}
-
-        {data && (
-          <pre className="bg-white p-4 rounded-md border overflow-x-auto max-h-64">
-            {JSON.stringify(data, null, 2)}
-          </pre>
-        )}
-      </div>
+          <button onClick={handleSubmit}>Next</button>
+        </>
+      ) : (
+        <Verification riskLevel={riskLevel} />
+      )}
     </div>
   );
 }
+
+export default App;
